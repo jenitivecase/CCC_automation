@@ -19,12 +19,13 @@ enddate <- '20170930'
 
 #move this bit over into the main script once QC complete to avoid re-connecting
 library(RODBC) 
-db <- odbcDriverConnect('driver={SQL Server};server=asc-prd-sql07;trusted_connection=true')
+db <- odbcDriverConnect('driver={SQL Server};
+                        server=asc-prd-sql07;
+                        trusted_connection=true')
 
 
 query_setup <- "
-USE [asm]
-SET ANSI_NULLS ON
+SET ANSI_NULLS OFF
 SET QUOTED_IDENTIFIER ON
 
 BEGIN
@@ -149,17 +150,17 @@ SectionID
 ,AdjPercentile
 ,Percentile
 ,BookletID
-FROM [Stats].SectionScore SS1 WITH(NOLOCK)
-INNER JOIN Config.Assessment A WITH(NOLOCK)
+FROM asm.[Stats].SectionScore SS1 WITH(NOLOCK)
+INNER JOIN asm.Config.Assessment A WITH(NOLOCK)
 ON A.AssessmentID = SS1.AssessmentID
 WHERE A.AssessmentStyleID IN (6, 13) 
 AND A.TestTypeID = 3
 ) SS
-INNER JOIN Config.Section S WITH(NOLOCK)
+INNER JOIN asm.Config.Section S WITH(NOLOCK)
 ON S.SectionID = SS.SectionID 
-INNER JOIN Config.Assessment A WITH(NOLOCK)
+INNER JOIN asm.Config.Assessment A WITH(NOLOCK)
 ON A.AssessmentID = SS.AssessmentID 
-INNER JOIN [Stats].Booklet B WITH(NOLOCK) 
+INNER JOIN asm.[Stats].Booklet B WITH(NOLOCK) 
 ON B.BookletID = SS.BookletID
 INNER JOIN (
 SELECT 
@@ -167,11 +168,11 @@ B.UserID
 ,B.AssessmentID
 ,B.BookletID
 ,B.Created
-,Config.ufn_ATITEASInfo(B.BookletID, 1) AS 'Attempt'
-,Config.ufn_ATITEASInfo(B.BookletID, 2) AS 'Attempts'
-,Config.ufn_ATITEASInfo(B.BookletID, 3) AS 'Days' 
-FROM [Stats].Booklet B WITH(NOLOCK)
-INNER JOIN Config.Assessment A WITH(NOLOCK)
+,asm.Config.ufn_ATITEASInfo(B.BookletID, 1) AS 'Attempt'
+,asm.Config.ufn_ATITEASInfo(B.BookletID, 2) AS 'Attempts'
+,asm.Config.ufn_ATITEASInfo(B.BookletID, 3) AS 'Days' 
+FROM asm.[Stats].Booklet B WITH(NOLOCK)
+INNER JOIN asm.Config.Assessment A WITH(NOLOCK)
 ON A.AssessmentID = B.AssessmentID 
 WHERE B.InstitutionID = @InstitutionID
 AND A.AssessmentStyleID IN (6, 13) 
@@ -186,18 +187,18 @@ B.UserID
 ,B.AssessmentID
 ,B.BookletID
 ,B.Created
-,Config.ufn_ATITEASInfo(B.BookletID, 1) AS 'Attempt'
-,Config.ufn_ATITEASInfo(B.BookletID, 2) AS 'Attempts'
-,Config.ufn_ATITEASInfo(B.BookletID, 3) AS 'Days' 
+,asm.Config.ufn_ATITEASInfo(B.BookletID, 1) AS 'Attempt'
+,asm.Config.ufn_ATITEASInfo(B.BookletID, 2) AS 'Attempts'
+,asm.Config.ufn_ATITEASInfo(B.BookletID, 3) AS 'Days' 
 FROM [E-Com].dbo.TEASSendResultDetail TSR WITH(NOLOCK)
-INNER JOIN Config.Batch BA WITH(NOLOCK) 
+INNER JOIN asm.Config.Batch BA WITH(NOLOCK) 
 ON BA.BatchID = TSR.BatchID
-INNER JOIN [Stats].Booklet B WITH(NOLOCK) 
+INNER JOIN asm.[Stats].Booklet B WITH(NOLOCK) 
 ON B.BatchID = BA.BatchID 
 AND B.UserID = TSR.OwnerID
-INNER JOIN Config.Institution I WITH(NOLOCK) 
+INNER JOIN asm.Config.Institution I WITH(NOLOCK) 
 ON I.InstitutionID = TSR.InstitutionID
-INNER JOIN Config.Institution I2 WITH(NOLOCK) 
+INNER JOIN asm.Config.Institution I2 WITH(NOLOCK) 
 ON I2.InstitutionID = B.InstitutionID
 WHERE I.InstitutionID = @InstitutionID 
 AND B.StatusID = 31 
@@ -220,7 +221,7 @@ WHERE bookletid IN (
 SELECT 
 MIN(T.BookletID) 
 FROM #TEMP T 
-INNER JOIN Config.Assessment A 
+INNER JOIN asm.Config.Assessment A 
 ON A.AssessmentID = T.AssessmentID 
 WHERE A.AssessmentStyleID IN (6, 13) 
 AND A.TestTypeID = 3 
@@ -252,7 +253,7 @@ T.created DESC
 ,T.bookletid DESC
 ) AS [rank] 
 FROM #TEMP T 
-INNER JOIN Config.Assessment A 
+INNER JOIN asm.Config.Assessment A 
 ON A.AssessmentID = T.AssessmentID
 WHERE A.AssessmentStyleID IN (6, 13) 
 AND A.TestTypeID = 3
@@ -425,18 +426,18 @@ THEN SS.totalpr
 ELSE 0 
 END) AS 'MostRecent_TEAS_Percentile'
 FROM #TEMP SS
-INNER JOIN Config.Assessment A 
+INNER JOIN asm.Config.Assessment A 
 ON A.AssessmentID = SS.AssessmentID
 GROUP BY 
 SS.userid
 ) [data]
-INNER JOIN [Stats].Booklet B2 WITH(NOLOCK) 
+INNER JOIN asm.[Stats].Booklet B2 WITH(NOLOCK) 
 ON B2.BookletID = [data].MostRecent_TEAS_BookletID
-INNER JOIN Config.atiUser U WITH(NOLOCK) 
+INNER JOIN asm.Config.atiUser U WITH(NOLOCK) 
 ON U.UserID = [data].userid
-INNER JOIN Config.Institution I WITH(NOLOCK) 
+INNER JOIN asm.Config.Institution I WITH(NOLOCK) 
 ON I.InstitutionID = B2.InstitutionID
-LEFT OUTER JOIN Config.Class C2 WITH(NOLOCK) 
+LEFT OUTER JOIN asm.Config.Class C2 WITH(NOLOCK) 
 ON C2.ClassID = U.ClassID
 WHERE [data].MostRecent_ReadingPercentage > 0 
 AND [data].MostRecent_MathPercentage > 0 
@@ -453,3 +454,4 @@ query_setup <- gsub("@StartDate", paste0("'", startdate, "'"), query_setup)
 query_setup <- gsub("@EndDate", paste0("'", enddate, "'"), query_setup)
 
 inst_data <- sqlQuery(db, query_setup)
+
